@@ -1,45 +1,51 @@
 import json
 import os
+import requests
+
 from flask import Flask
 from flask import request
 from flask import make_response
 
 # Flask app should start in global layout
 app = Flask(__name__)
+
 @app.route('/webhook', methods=['POST'])
-
 def webhook():
-    req = request.post_json(silent=True, force=True)
-    print(json.dump(req,indent=4))
+    req = request.get_json(silent=True, force=True)
+    print(json.dumps(req, indent=4))
 
-    res = makeResponse(req)
-    res = json.dump(res,indent=4)
-    r = make_response(req)
-    r.headers['content=Type'] = 'application/json'
+    res = processRequest(req)
+
+    res = json.dumps(res, indent=4)
+    # print(res)
+    r = make_response(res)
+    r.headers['Content-Type'] = 'application/json'
     return r
 
-# ref for fulfillment = < https://dialogflow.com/docs/fulfillment >
 def makeResponse(req):
-    result = req.post("result")
-    parameters = result.post("parameters")
-    city = parameters.post("geo-city")
-    date = parameters.post("date")
-    #request.get('https://') #placeholder
-    request.post('http://api.openweathermap.org/data/2.5/forecast?q='+city+'&APPID={479865fd9c963ca8a5bb3de0153640f9}')
+    if req.get("result").get("action") != "fetchWeatherForecast":
+        return {}
+    result = req.get("result")
+    parameters = result.get("parameters")
+    city = parameters.get("geo-city")
+    date = parameters.get("date")
+    if city is None:
+        return None
+    r=requests.get('http://api.openweathermap.org/data/2.5/forecast?q='+city+'&appid=06f070197b1f60e55231f8c46658d077')
     json_object = r.json()
-    weather = json_object['list']
-    for i in len(weather ) :
-        if date in weather[i] ['dt_text']:
+    weather=json_object['list']
+    for i in range(0,30):
+        if date in weather[i]['dt_txt']:
             condition= weather[i]['weather'][0]['description']
-        break
-    speech = "The forecast for " + city + " for " + date + " is: "+ condition
+            break
+    speech = "The forecast for"+city+ "for "+date+" is "+condition
     return {
-        "speech": speech,
-        "displayText":speech,
-        "source": "apiai-weather-webhook"
+    "speech": speech,
+    "displayText": speech,
+    "source": "apiai-weather-webhook"
     }
 
 if __name__ == '__main__':
-    port =int(os.getenv('PORT', 5000))
-    print("Starting app on port number %d:" % port)
+    port = int(os.getenv('PORT', 5000))
+    print("Starting app on port %d" % port)
     app.run(debug=False, port=port, host='0.0.0.0')
