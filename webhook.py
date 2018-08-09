@@ -9,7 +9,7 @@ app = Flask(__name__)
 @app.route('/webhook', methods=['POST'])
 
 def webhook():
-    req = request.get_json(silent=True, force=True)
+    req = request.post_json(silent=True, force=True)
     print(json.dump(req,indent=4))
 
     res = makeResponse(req)
@@ -20,12 +20,12 @@ def webhook():
 
 # ref for fulfillment = < https://dialogflow.com/docs/fulfillment >
 def makeResponse(req):
-    result = req.get("result")
-    parameters = result.get("parameters")
-    city = parameters.get("geo-city")
-    date = parameters.get("date")
+    result = req.post("result")
+    parameters = result.post("parameters")
+    city = parameters.post("geo-city")
+    date = parameters.post("date")
     #request.get('https://') #placeholder
-    request.get('http://api.openweathermap.org/data/2.5/forecast?q='+city+'&APPID={479865fd9c963ca8a5bb3de0153640f9}')
+    request.post('http://api.openweathermap.org/data/2.5/forecast?q='+city+'&APPID={479865fd9c963ca8a5bb3de0153640f9}')
     json_object = r.json()
     weather = json_object['list']
     for i in len(weather ) :
